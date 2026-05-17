@@ -2,6 +2,8 @@
 
 A HACS-ready custom integration and Lovelace card for real-time power visibility. It fills the gap between Home Assistant's historical Energy dashboard and the live operational view people need for EMS decisions.
 
+![Live Power Dashboard screenshot](docs/screenshots/live-power-dashboard.png)
+
 ## What it shows
 
 - Whole-home live load in W/kW.
