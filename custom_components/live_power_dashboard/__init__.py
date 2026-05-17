@@ -50,7 +50,7 @@ async def _async_register_http(hass: "HomeAssistant") -> None:
 def _make_config_view():
     from json import JSONDecodeError
 
-    from homeassistant.components.http import HomeAssistantView
+    from homeassistant.components.http import KEY_HASS, HomeAssistantView
     from homeassistant.helpers.storage import Store
 
     def _user_is_admin(request) -> bool:
@@ -63,7 +63,7 @@ def _make_config_view():
         requires_auth = True
 
         async def get(self, request):
-            hass = request.app["hass"]
+            hass = request.app[KEY_HASS]
             store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
             data = await store.async_load() or {"dashboards": []}
             return self.json(data)
@@ -71,7 +71,7 @@ def _make_config_view():
         async def post(self, request):
             if not _user_is_admin(request):
                 return self.json({"error": "admin privileges are required"}, status_code=403)
-            hass = request.app["hass"]
+            hass = request.app[KEY_HASS]
             try:
                 payload = await request.json()
                 dashboard = normalize_dashboard_config(payload)
@@ -87,7 +87,7 @@ def _make_config_view():
         async def delete(self, request):
             if not _user_is_admin(request):
                 return self.json({"error": "admin privileges are required"}, status_code=403)
-            hass = request.app["hass"]
+            hass = request.app[KEY_HASS]
             dashboard_id = request.query.get("id", "").strip()
             if not dashboard_id:
                 return self.json({"error": "id query parameter is required"}, status_code=400)
