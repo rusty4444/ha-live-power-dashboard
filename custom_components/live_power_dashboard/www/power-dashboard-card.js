@@ -49,7 +49,7 @@ var LivePowerDashboardCard = class extends HTMLElement {
   setConfig(config) {
     if (!config) throw new Error("Card configuration is required");
     this.config = config;
-    this.attachShadow({ mode: "open" });
+    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
   }
   set hass(hass) {
     this._hass = hass;
@@ -82,7 +82,7 @@ var LivePowerDashboardCard = class extends HTMLElement {
     }).join("");
     const title = escapeHtml(cfg.title || "Live Power Dashboard");
     this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card class="card">
-      <div class="header"><div><div class="title">${title}</div><div class="subtitle">Grid ${flow.direction} \xB7 updates with Home Assistant state changes</div></div><div class="risk ${risk.level}">${risk.level}${risk.ratio ? ` ${(risk.ratio * 100).toFixed(0)}%` : ""}</div></div>
+      <div class="header"><div><div class="title">${title}</div><div class="subtitle">Grid ${flow.direction} \xB7 updates with Home Assistant state changes</div></div><div class="risk ${risk.level}">${risk.level}${risk.level !== "unknown" ? ` ${(risk.ratio * 100).toFixed(0)}%` : ""}</div></div>
       <div class="grid">
         ${metric(`Grid ${flow.direction}`, flow.watts, flow.direction)}
         ${metric("Whole-home load", load, "load")}

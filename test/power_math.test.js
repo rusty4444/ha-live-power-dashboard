@@ -19,6 +19,7 @@ test('peakRisk computes threshold status', () => {
   assert.deepEqual(peakRisk(4200, 5000), { level: 'watch', ratio: 0.84 });
   assert.deepEqual(peakRisk(5200, 5000), { level: 'peak', ratio: 1.04 });
   assert.deepEqual(peakRisk(1000, 0), { level: 'unknown', ratio: 0 });
+  assert.deepEqual(peakRisk(0, 5000), { level: 'normal', ratio: 0 });
 });
 
 test('escapeHtml escapes Lovelace config strings before template insertion', () => {
