@@ -2,6 +2,5 @@
   "name": "Live Power Dashboard",
   "content_in_root": false,
   "render_readme": true,
-  "homeassistant": "2024.8.0",
-  "domains": ["live_power_dashboard"]
+  "homeassistant": "2024.8.0"
 }
