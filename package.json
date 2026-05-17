@@ -1,0 +1,15 @@
+{
+  "name": "ha-live-power-dashboard",
+  "version": "0.1.0",
+  "description": "Home Assistant custom integration and Lovelace card for real-time power, solar, battery, circuit and peak-demand visibility.",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/power-dashboard-card.js --bundle --format=esm --target=es2020 --outfile=custom_components/live_power_dashboard/www/power-dashboard-card.js",
+    "test": "node --test test/*.test.js",
+    "verify-bundle": "git diff --exit-code -- custom_components/live_power_dashboard/www/power-dashboard-card.js",
+    "check": "npm run build && npm test && python3 -m pytest tests -q && python3 -m py_compile custom_components/live_power_dashboard/*.py"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.11"
+  }
+}

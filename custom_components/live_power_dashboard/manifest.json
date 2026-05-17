@@ -1,0 +1,12 @@
+{
+  "domain": "live_power_dashboard",
+  "name": "Live Power Dashboard",
+  "after_dependencies": ["frontend", "http"],
+  "codeowners": ["@rusty4444"],
+  "config_flow": true,
+  "documentation": "https://github.com/rusty4444/ha-live-power-dashboard",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/rusty4444/ha-live-power-dashboard/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Power Dashboard",
+        "description": "Install the storage API and static dashboard card resources. No cloud account is required."
+      }
+    },
+    "abort": {
+      "already_configured": "Live Power Dashboard is already configured."
+    }
+  }
+}
