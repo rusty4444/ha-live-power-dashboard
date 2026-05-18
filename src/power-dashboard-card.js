@@ -115,6 +115,7 @@ class LivePowerDashboardCard extends HTMLElement {
     this._inEditor = false;
     this._presets = [];
     this._currentPresetId = null;
+    this._presetsFetched = false;
     this._rollingData = [];
   }
 
@@ -205,6 +206,11 @@ class LivePowerDashboardCard extends HTMLElement {
 
   render() {
     if (!this.shadowRoot || !this.config || !this._hass) return;
+    // Fetch presets on first render
+    if (!this._presetsFetched) {
+      this._presetsFetched = true;
+      this._fetchPresets();
+    }
     const cfg = this.config;
     const entities = cfg.entities || {};
     const grid = readPowerWatts(this._hass, entities.grid_power || cfg.grid_power) ?? 0;

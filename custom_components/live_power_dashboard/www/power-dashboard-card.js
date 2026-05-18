@@ -36,13 +36,19 @@ function readPowerWatts(hass, entityId) {
 }
 function recordRollingSample(entityId, watts, now = Date.now()) {
   const key = `lpd_rolling_${entityId}`;
-  const raw = localStorage.getItem(key);
-  const window2 = raw ? JSON.parse(raw) : [];
-  window2.push({ t: now, w: Math.round(watts) });
-  const cutoff = now - 48 * 60 * 60 * 1e3;
-  const pruned = window2.filter((s) => s.t >= cutoff);
-  localStorage.setItem(key, JSON.stringify(pruned));
-  return pruned;
+  try {
+    const raw = localStorage.getItem(key);
+    const window2 = raw ? JSON.parse(raw) : [];
+    window2.push({ t: now, w: Math.round(watts) });
+    const cutoff = now - 48 * 60 * 60 * 1e3;
+    const pruned = window2.filter((s) => s.t >= cutoff);
+    localStorage.setItem(key, JSON.stringify(pruned));
+    return pruned;
+  } catch {
+    const fresh = [{ t: now, w: Math.round(watts) }];
+    localStorage.setItem(key, JSON.stringify(fresh));
+    return fresh;
+  }
 }
 function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
   if (!samples || samples.length === 0) {
@@ -52,7 +58,6 @@ function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
       current: 0,
       trend: "stable",
       projectedPeak: 0,
-      timeToThreshold: null,
       samplesInWindow: 0
     };
   }
@@ -65,7 +70,6 @@ function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
       current: 0,
       trend: "stable",
       projectedPeak: 0,
-      timeToThreshold: null,
       samplesInWindow: 0
     };
   }
@@ -75,7 +79,6 @@ function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
   const average = sum / values.length;
   const peak = Math.max(...values);
   const n = inWindow.length;
-  const indices = inWindow.map((_, i) => i);
   const meanI = (n - 1) / 2;
   const meanV = average;
   let num = 0, den = 0;
@@ -87,7 +90,8 @@ function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
   }
   const slope = den > 0 ? num / den : 0;
   const trend = slope > 0.5 ? "rising" : slope < -0.5 ? "falling" : "stable";
-  const remainingSteps = Math.max(0, windowMs / (now - (inWindow.length > 1 ? inWindow[inWindow.length - 2].t : 6e4)) - n);
+  const stepInterval = Math.max(1e3, now - (inWindow.length > 1 ? inWindow[inWindow.length - 2].t : 6e4));
+  const remainingSteps = Math.max(0, windowMs / stepInterval - n);
   const projectedPeak = Math.max(current, current + slope * remainingSteps);
   return {
     average: Math.round(average),
@@ -95,7 +99,6 @@ function rollingWindowStats(samples, windowMs = 30 * 60 * 1e3) {
     current,
     trend,
     projectedPeak: Math.max(0, Math.round(projectedPeak)),
-    timeToThreshold: null,
     samplesInWindow: inWindow.length
   };
 }
@@ -216,6 +219,7 @@ var LivePowerDashboardCard = class extends HTMLElement {
     this._inEditor = false;
     this._presets = [];
     this._currentPresetId = null;
+    this._presetsFetched = false;
     this._rollingData = [];
   }
   setConfig(config) {
@@ -312,6 +316,10 @@ var LivePowerDashboardCard = class extends HTMLElement {
   }
   render() {
     if (!this.shadowRoot || !this.config || !this._hass) return;
+    if (!this._presetsFetched) {
+      this._presetsFetched = true;
+      this._fetchPresets();
+    }
     const cfg = this.config;
     const entities = cfg.entities || {};
     const grid = readPowerWatts(this._hass, entities.grid_power || cfg.grid_power) ?? 0;

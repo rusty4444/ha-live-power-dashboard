@@ -54,14 +54,21 @@ export function readPowerWatts(hass, entityId) {
  */
 export function recordRollingSample(entityId, watts, now = Date.now()) {
   const key = `lpd_rolling_${entityId}`;
-  const raw = localStorage.getItem(key);
-  const window = raw ? JSON.parse(raw) : [];
-  window.push({ t: now, w: Math.round(watts) });
-  // Keep at most 48 hours of data (2880 entries at 60s intervals)
-  const cutoff = now - 48 * 60 * 60 * 1000;
-  const pruned = window.filter((s) => s.t >= cutoff);
-  localStorage.setItem(key, JSON.stringify(pruned));
-  return pruned;
+  try {
+    const raw = localStorage.getItem(key);
+    const window = raw ? JSON.parse(raw) : [];
+    window.push({ t: now, w: Math.round(watts) });
+    // Keep at most 48 hours of data (2880 entries at 60s intervals)
+    const cutoff = now - 48 * 60 * 60 * 1000;
+    const pruned = window.filter((s) => s.t >= cutoff);
+    localStorage.setItem(key, JSON.stringify(pruned));
+    return pruned;
+  } catch {
+    // Corrupted localStorage data — start fresh
+    const fresh = [{ t: now, w: Math.round(watts) }];
+    localStorage.setItem(key, JSON.stringify(fresh));
+    return fresh;
+  }
 }
 
 /**
@@ -69,13 +76,13 @@ export function recordRollingSample(entityId, watts, now = Date.now()) {
  *
  * @param {Array<{t:number, w:number}>} samples  Time-stamped power readings
  * @param {number} windowMs  Look-back window in ms (default 30 min)
- * @returns {{ average: number, peak: number, current: number, trend: 'rising'|'falling'|'stable', projectedPeak: number, timeToThreshold: number|null, samplesInWindow: number }}
+ * @returns {{ average: number, peak: number, current: number, trend: 'rising'|'falling'|'stable', projectedPeak: number, samplesInWindow: number }}
  */
 export function rollingWindowStats(samples, windowMs = 30 * 60 * 1000) {
   if (!samples || samples.length === 0) {
     return {
       average: 0, peak: 0, current: 0, trend: 'stable',
-      projectedPeak: 0, timeToThreshold: null, samplesInWindow: 0,
+      projectedPeak: 0, samplesInWindow: 0,
     };
   }
   const now = samples[samples.length - 1].t;
@@ -83,7 +90,7 @@ export function rollingWindowStats(samples, windowMs = 30 * 60 * 1000) {
   if (inWindow.length === 0) {
     return {
       average: 0, peak: 0, current: 0, trend: 'stable',
-      projectedPeak: 0, timeToThreshold: null, samplesInWindow: 0,
+      projectedPeak: 0, samplesInWindow: 0,
     };
   }
 
@@ -95,7 +102,6 @@ export function rollingWindowStats(samples, windowMs = 30 * 60 * 1000) {
 
   // Simple linear regression to detect trend
   const n = inWindow.length;
-  const indices = inWindow.map((_, i) => i);
   const meanI = (n - 1) / 2;
   const meanV = average;
   let num = 0, den = 0;
@@ -108,8 +114,10 @@ export function rollingWindowStats(samples, windowMs = 30 * 60 * 1000) {
   const slope = den > 0 ? num / den : 0;
   const trend = slope > 0.5 ? 'rising' : slope < -0.5 ? 'falling' : 'stable';
 
-  // Project the value at the end of the window using the slope
-  const remainingSteps = Math.max(0, windowMs / (now - (inWindow.length > 1 ? inWindow[inWindow.length - 2].t : 60000)) - n);
+  // Project the value at the end of the window using the slope.
+  // Guard against division by zero when two samples share the same timestamp.
+  const stepInterval = Math.max(1000, now - (inWindow.length > 1 ? inWindow[inWindow.length - 2].t : 60000));
+  const remainingSteps = Math.max(0, windowMs / stepInterval - n);
   const projectedPeak = Math.max(current, current + slope * remainingSteps);
 
   return {
@@ -118,7 +126,6 @@ export function rollingWindowStats(samples, windowMs = 30 * 60 * 1000) {
     current,
     trend,
     projectedPeak: Math.max(0, Math.round(projectedPeak)),
-    timeToThreshold: null,
     samplesInWindow: inWindow.length,
   };
 }
