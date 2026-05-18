@@ -96,9 +96,9 @@ npm run check
 
 ## Status
 
-MVP / early release. Planned next steps:
+MVP / early release with the following features implemented:
 
-- visual editor for selecting energy entities;
-- stored preset picker card;
-- demand-tariff prediction using rolling windows;
-- optional automation blueprints for EV/battery/load shedding.
+- **Visual editor for selecting energy entities** — click "Edit" on the card to open an inline editor with dropdown entity pickers for grid, solar, battery, load power sensors, circuit management, and tariff configuration.
+- **Stored preset picker card** — select saved presets from the Storage API via a dropdown bar, save the current configuration as a new preset, and reload presets on demand.
+- **Demand-tariff prediction using rolling windows** — tracks load history in localStorage, computes 30-minute rolling window statistics with linear regression trend detection, and predicts whether you'll exceed your demand threshold. Shows projected breach timing and confidence level.
+- Optional automation blueprints for EV/battery/load shedding.
