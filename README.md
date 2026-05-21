@@ -38,6 +38,7 @@ solar_power: sensor.solar_power
 battery_power: sensor.battery_power
 load_power: sensor.home_load_power
 peak_threshold_w: 5000
+global_max_w: 10000
 circuits:
   - name: EV charger
     entity: sensor.ev_charger_power
@@ -49,6 +50,16 @@ circuits:
     entity: sensor.kitchen_circuit_power
     max_power: 3000
 ```
+
+### Circuit display options
+
+Two features make it easier to compare circuits at a glance:
+
+**`global_max_w`** sets a single power ceiling for all circuit bars. Without it, each circuit bar scales to its own `max_power`, which makes it impossible to compare relative consumption visually. When `global_max_w` is set (e.g. `10000` for a 10 kW whole-home ceiling), every bar uses that same scale — a 5 kW load fills 50% of the bar, a 2 kW load fills 20%.
+
+**Auto-sort** is always on. Circuits are sorted descending by current power draw on every render. The biggest loads appear at the top of the list so you can spot them instantly. No config needed.
+
+Both features are supported in the visual editor (click "Edit" on the card → "Circuit Display" section), the HA Lovelace YAML editor, the preset picker, and the Storage API.
 
 Positive grid power is treated as import. Negative grid power is treated as export. Power sensors with `W`, `kW`, or `MW` units are converted to watts before display.
 
