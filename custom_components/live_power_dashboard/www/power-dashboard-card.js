@@ -179,6 +179,11 @@ function renderEditor(config, hass) {
       <label>Threshold (W) <input id="editor-threshold" type="number" value="${tariff.threshold_w || ""}" placeholder="e.g. 5000"></label>
       <label>Currency <input id="editor-currency" value="${escapeHtml(tariff.currency || "")}" placeholder="AUD" maxlength="8"></label>
     </div>
+    <div class="editor-section-title">Circuit Display</div>
+    <div class="editor-row">
+      <label>Global max (W) <input id="editor-global-max" type="number" value="${config.global_max_w || ""}" placeholder="e.g. 10000 (0 = per-circuit)"></label>
+      <label></label>
+    </div>
     <div class="editor-section-title">Circuits <button class="btn-secondary" id="editor-add-circuit" style="font-size:12px;padding:2px 8px;margin-left:8px">+ Add</button></div>
     <div id="editor-circuits">${circuitsHtml}</div>
     <div class="editor-actions">
@@ -280,6 +285,7 @@ var LivePowerDashboardCard = class extends HTMLElement {
     this.config.circuits = (preset.circuits || []).map((c) => Object.assign({}, c));
     this.config.tariff = Object.assign({}, preset.tariff || {});
     this.config.peak_threshold_w = preset.tariff?.threshold_w;
+    this.config.global_max_w = preset.global_max_w || void 0;
     this.render();
   }
   async _saveAsPreset() {
@@ -295,7 +301,8 @@ var LivePowerDashboardCard = class extends HTMLElement {
       title: cfg.title || "Live Power Dashboard",
       entities: Object.assign({}, cfg.entities || {}),
       circuits: (cfg.circuits || []).map((c) => ({ name: c.name, entity: c.entity, max_power: c.max_power })),
-      tariff: { threshold_w: cfg.tariff?.threshold_w || cfg.peak_threshold_w || null, currency: cfg.tariff?.currency || null }
+      tariff: { threshold_w: cfg.tariff?.threshold_w || cfg.peak_threshold_w || null, currency: cfg.tariff?.currency || null },
+      global_max_w: cfg.global_max_w || null
     };
     try {
       const resp = await fetch("/api/live_power_dashboard/config", {
@@ -333,9 +340,15 @@ var LivePowerDashboardCard = class extends HTMLElement {
     const stats = rollingWindowStats(this._rollingData);
     const prediction = predictDemandRisk(stats, threshold);
     const circuits = Array.isArray(cfg.circuits) ? cfg.circuits : [];
-    const circuitRows = circuits.map((c) => {
-      const w = readPowerWatts(this._hass, c.entity) ?? 0;
-      const max = toNumber(c.max_power || cfg.default_circuit_max_w || load || 1, 1);
+    const globalMax = toNumber(cfg.global_max_w, 0);
+    const annotated = circuits.map((c) => ({
+      ...c,
+      _watts: readPowerWatts(this._hass, c.entity) ?? 0
+    }));
+    annotated.sort((a, b) => b._watts - a._watts);
+    const circuitRows = annotated.map((c) => {
+      const w = c._watts;
+      const max = globalMax > 0 ? globalMax : toNumber(c.max_power || cfg.default_circuit_max_w || load || 1, 1);
       const pct = Math.max(0, Math.min(100, w / max * 100));
       return `<div class="circuit-row"><div>${escapeHtml(c.name || c.entity || "Circuit")}</div><div class="bar"><div class="fill" style="width:${pct}%"></div></div><strong>${formatWatts(w)}</strong></div>`;
     }).join("");
@@ -412,6 +425,9 @@ var LivePowerDashboardCard = class extends HTMLElement {
     this.config.circuits = circuits;
     this.config.tariff = { threshold_w: threshold || void 0, currency: currency || void 0 };
     if (threshold > 0) this.config.peak_threshold_w = threshold;
+    const globalMax = parseFloat(val("editor-global-max")) || 0;
+    if (globalMax > 0) this.config.global_max_w = globalMax;
+    else delete this.config.global_max_w;
     this._inEditor = false;
     this.render();
   }
@@ -477,12 +493,14 @@ var LivePowerDashboardEditor = class extends HTMLElement {
         circuits.push({ name: f.value || entity, entity, max_power: mp ? parseFloat(mp) : void 0 });
       }
     });
+    const globalMax = parseFloat(val("editor-global-max")) || 0;
     this._config = {
       type: "custom:live-power-dashboard-card",
       title,
       entities: Object.keys(entities).length ? entities : void 0,
       circuits: circuits.length ? circuits : void 0,
       peak_threshold_w: threshold,
+      global_max_w: globalMax > 0 ? globalMax : void 0,
       tariff: threshold ? { threshold_w: threshold, currency: val("editor-currency") || void 0 } : void 0
     };
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
