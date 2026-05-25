@@ -1,4 +1,11 @@
 # Live Power Dashboard for Home Assistant
+<p align="center">
+  <a href="https://buymeacoffee.com/rusty4" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50">
+  </a>
+</p>
+
+
 
 A HACS-ready custom integration and Lovelace card for real-time power visibility. It fills the gap between Home Assistant's historical Energy dashboard and the live operational view people need for EMS decisions.
 
