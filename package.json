@@ -10,6 +10,6 @@
     "check": "npm run build && npm test && python3 -m pytest tests -q && python3 -m py_compile custom_components/live_power_dashboard/*.py"
   },
   "devDependencies": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.2"
   }
 }
